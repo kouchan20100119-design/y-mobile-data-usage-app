@@ -1,46 +1,204 @@
-import { ScrollView, Text, View, TouchableOpacity } from "react-native";
-
+import { useEffect, useState } from "react";
+import { ScrollView, Text, View, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from "react-native";
+import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
+import { UsageChart, CapacityBreakdown } from "@/components/data-charts";
+import { YmobileFetcher, MobileDataUsage } from "@/lib/ymobile-fetcher";
+import { i18n } from "@/lib/i18n-ja";
+import * as Haptics from "expo-haptics";
 
-/**
- * Home Screen - NativeWind Example
- *
- * This template uses NativeWind (Tailwind CSS for React Native).
- * You can use familiar Tailwind classes directly in className props.
- *
- * Key patterns:
- * - Use `className` instead of `style` for most styling
- * - Theme colors: use tokens directly (bg-background, text-foreground, bg-primary, etc.); no dark: prefix needed
- * - Responsive: standard Tailwind breakpoints work on web
- * - Custom colors defined in tailwind.config.js
- */
 export default function HomeScreen() {
+  const router = useRouter();
+  const colors = useColors();
+  const [data, setData] = useState<MobileDataUsage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 初回ロード
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setError(null);
+      const credentials = await YmobileFetcher.getCredentials();
+
+      if (!credentials) {
+        router.replace("/(auth)/login" as any);
+        return;
+      }
+
+      const fetcher = new YmobileFetcher(credentials.mobileId, credentials.password);
+      const result = await fetcher.getData();
+
+      if (result.success && result.data) {
+        setData(result.data);
+      } else {
+        setError(result.error || i18n.errors.fetchFailed);
+      }
+    } catch (err) {
+      console.error("Load data error:", err);
+      setError(i18n.errors.unknownError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      setError(null);
+      const credentials = await YmobileFetcher.getCredentials();
+
+      if (!credentials) {
+        router.replace("/(auth)/login" as any);
+        return;
+      }
+
+      const fetcher = new YmobileFetcher(credentials.mobileId, credentials.password);
+      const result = await fetcher.getData(true); // Force refresh
+
+      if (result.success && result.data) {
+        setData(result.data);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setError(result.error || i18n.errors.fetchFailed);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } catch (err) {
+      console.error("Refresh error:", err);
+      setError(i18n.errors.unknownError);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(i18n.settings.confirmLogout, "", [
+      {
+        text: i18n.settings.cancel,
+        style: "cancel",
+      },
+      {
+        text: i18n.settings.logout,
+        style: "destructive",
+        onPress: async () => {
+          await YmobileFetcher.deleteCredentials();
+          router.replace("/(auth)/login" as any);
+        },
+      },
+    ]);
+  };
+
+  if (loading) {
+    return (
+      <ScreenContainer className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text className="mt-4 text-muted">データを読み込み中...</Text>
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <ScreenContainer className="p-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 gap-8">
-          {/* Hero Section */}
-          <View className="items-center gap-2">
-            <Text className="text-4xl font-bold text-foreground">Welcome</Text>
-            <Text className="text-base text-muted text-center">
-              Edit app/(tabs)/index.tsx to get started
-            </Text>
-          </View>
-
-          {/* Example Card */}
-          <View className="w-full max-w-sm self-center bg-surface rounded-2xl p-6 shadow-sm border border-border">
-            <Text className="text-lg font-semibold text-foreground mb-2">NativeWind Ready</Text>
-            <Text className="text-sm text-muted leading-relaxed">
-              Use Tailwind CSS classes directly in your React Native components.
-            </Text>
-          </View>
-
-          {/* Example Button */}
-          <View className="items-center">
-            <TouchableOpacity className="bg-primary px-6 py-3 rounded-full active:opacity-80">
-              <Text className="text-background font-semibold">Get Started</Text>
+    <ScreenContainer className="flex-1 px-0">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        <View className="flex-1 px-6 py-4 gap-6">
+          {/* ヘッダー */}
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-3xl font-bold text-foreground">{i18n.home.title}</Text>
+              {data && (
+                <Text className="text-xs text-muted mt-1">
+                  {i18n.home.lastUpdated}: {data.last_updated}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="bg-surface rounded-lg p-3 border border-border"
+              style={{ opacity: refreshing ? 0.5 : 1 }}
+              disabled={refreshing}
+            >
+              <Text className="text-sm font-semibold text-foreground">ログアウト</Text>
             </TouchableOpacity>
           </View>
+
+          {/* エラーメッセージ */}
+          {error && (
+            <View className="bg-error/10 border border-error rounded-lg p-4 gap-2">
+              <Text className="text-sm font-semibold text-error">エラー</Text>
+              <Text className="text-sm text-error">{error}</Text>
+              <TouchableOpacity
+                onPress={handleRefresh}
+                className="bg-error rounded-lg py-2 px-4 mt-2"
+              >
+                <Text className="text-white font-semibold text-center text-sm">
+                  {i18n.errors.retryButton}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* データ表示 */}
+          {data && !error && (
+            <>
+              {/* 円グラフ */}
+              <UsageChart data={data} />
+
+              {/* 棒グラフ */}
+              <CapacityBreakdown data={data} />
+
+              {/* 詳細情報 */}
+              <View className="gap-3">
+                <Text className="text-lg font-semibold text-foreground">詳細情報</Text>
+                <View className="gap-2">
+                  <View className="flex-row justify-between items-center bg-surface rounded-lg p-3 border border-border">
+                    <Text className="text-sm text-muted">基本容量</Text>
+                    <Text className="text-base font-semibold text-foreground">{data.kihon_gb} GB</Text>
+                  </View>
+                  <View className="flex-row justify-between items-center bg-surface rounded-lg p-3 border border-border">
+                    <Text className="text-sm text-muted">繰越容量</Text>
+                    <Text className="text-base font-semibold text-foreground">{data.kurikoshi_gb} GB</Text>
+                  </View>
+                  <View className="flex-row justify-between items-center bg-surface rounded-lg p-3 border border-border">
+                    <Text className="text-sm text-muted">有料容量</Text>
+                    <Text className="text-base font-semibold text-foreground">{data.yuryou_gb} GB</Text>
+                  </View>
+                  <View className="flex-row justify-between items-center bg-surface rounded-lg p-3 border border-border">
+                    <Text className="text-sm text-muted">使用済み容量</Text>
+                    <Text className="text-base font-semibold text-foreground">{data.used_gb} GB</Text>
+                  </View>
+                  <View className="flex-row justify-between items-center bg-surface rounded-lg p-3 border border-border">
+                    <Text className="text-sm text-muted">残量</Text>
+                    <Text className="text-base font-semibold text-foreground">{data.remaining_gb} GB</Text>
+                  </View>
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* 更新ボタン */}
+          <TouchableOpacity
+            onPress={handleRefresh}
+            disabled={refreshing}
+            className="bg-primary rounded-lg py-4 items-center mt-4"
+            style={{ opacity: refreshing ? 0.7 : 1 }}
+          >
+            {refreshing ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <Text className="text-white font-semibold text-base">{i18n.home.refreshButton}</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </ScreenContainer>
