@@ -6,6 +6,7 @@ import { useColors } from "@/hooks/use-colors";
 import { UsageChart, CapacityBreakdown } from "@/components/data-charts";
 import { DataWidget } from "@/components/data-widget";
 import { YmobileFetcher, MobileDataUsage } from "@/lib/ymobile-fetcher";
+import { WidgetManager } from "@/lib/widget-manager";
 import { i18n } from "@/lib/i18n-ja";
 import * as Haptics from "expo-haptics";
 
@@ -38,6 +39,8 @@ export default function HomeScreen() {
 
       if (result.success && result.data) {
         setData(result.data);
+        // ウィジェットデータも更新
+        await WidgetManager.setWidgetData(result.data);
       } else {
         setError(result.error || i18n.errors.fetchFailed);
       }

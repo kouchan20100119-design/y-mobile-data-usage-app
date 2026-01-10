@@ -36,10 +36,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="widgets"
+        name="widget-settings"
         options={{
-          title: "ウィジェット",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="square.grid.2x2" color={color} />,
+          title: "\u8a2d\u5b9a",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
         }}
       />
     </Tabs>
