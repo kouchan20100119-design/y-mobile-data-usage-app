@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { UsageChart, CapacityBreakdown } from "@/components/data-charts";
+import { DataWidget } from "@/components/data-widget";
 import { YmobileFetcher, MobileDataUsage } from "@/lib/ymobile-fetcher";
 import { i18n } from "@/lib/i18n-ja";
 import * as Haptics from "expo-haptics";
@@ -147,6 +148,11 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* ウィジェット */}
+          {data && !error && (
+            <DataWidget data={data} isLoading={loading} />
           )}
 
           {/* データ表示 */}
