@@ -326,4 +326,28 @@ export class YmobileFetcher {
       console.log("⚠️ 認証情報削除エラー:", error);
     }
   }
+
+  /**
+   * AsyncStorageにデータを保存
+   */
+  static async saveStoredData(key: string, value: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(key, value);
+    } catch (error) {
+      console.log("⚠️ データ保存エラー:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * AsyncStorageからデータを取得
+   */
+  static async getStoredData(key: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.log("⚠️ データ取得エラー:", error);
+      return null;
+    }
+  }
 }
