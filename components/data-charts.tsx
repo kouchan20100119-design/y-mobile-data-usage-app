@@ -15,7 +15,6 @@ export function UsageChart({ data }: DataChartsProps) {
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
   const usedLength = (data.percentage / 100) * circumference;
-  const remainingLength = circumference - usedLength;
 
   return (
     <View className="items-center gap-4">
@@ -92,7 +91,6 @@ export function UsageChart({ data }: DataChartsProps) {
  * 棒グラフ（容量内訳）
  */
 export function CapacityBreakdown({ data }: DataChartsProps) {
-  const colors = useColors();
   const maxValue = Math.max(data.kihon_gb, data.kurikoshi_gb, data.yuryou_gb);
   const chartHeight = 150;
 
