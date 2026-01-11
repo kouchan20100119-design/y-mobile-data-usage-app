@@ -68,8 +68,12 @@
 - [x] ウィジェット更新スケジューラー実装
 - [x] アプリ起動時のウィジェット初期化
 - [x] ホーム画面とウィジェットデータの連動
-- [ ] Androidウィジェット実装（AppWidget）
-- [ ] iOSウィジェット実装（WidgetKit）
+- [x] Androidウィジェット実装（AppWidget）
+- [x] iOSウィジェット実装（WidgetKit）
+- [x] React Native Bridgeの実装
+- [x] Config Pluginsの実装
+- [x] バックグラウンド更新機能
+- [x] 共有データストレージ設定
 
 ## フェーズ10：ログ出力機能
 

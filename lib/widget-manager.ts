@@ -6,6 +6,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { YmobileFetcher, MobileDataUsage } from "./ymobile-fetcher";
 import { Platform } from "react-native";
+import { NativeWidgetBridge } from "./native-widget-bridge";
 
 const WIDGET_DATA_KEY = "widget_data";
 const WIDGET_CONFIG_KEY = "widget_config";
@@ -100,8 +101,8 @@ export class WidgetManager {
       await AsyncStorage.setItem(WIDGET_DATA_KEY, JSON.stringify(widgetData));
       await AsyncStorage.setItem(LAST_UPDATE_KEY, new Date().toISOString());
 
-      // ネイティブ側に通知
-      await WidgetManager.notifyNativeWidget("data_updated", widgetData);
+      // ネイティブウィジェットを更新
+      await NativeWidgetBridge.updateWidgetData(widgetData);
     } catch (error) {
       console.error("Failed to set widget data:", error);
       throw error;
@@ -149,17 +150,14 @@ export class WidgetManager {
       // 初回更新
       await WidgetManager.updateWidget();
 
-      // 定期更新スケジュール
-      const intervalMs = config.updateInterval * 60 * 1000;
-
-      // Note: React Nativeではバックグラウンドタスクの実行が制限されるため、
-      // 本格的な定期更新にはネイティブ実装が必要
-      console.log(`Widget scheduler started with ${config.updateInterval} minute interval`);
-
-      // ネイティブ側にスケジューラー開始を通知
-      await WidgetManager.notifyNativeWidget("scheduler_started", {
-        intervalMs,
-      });
+      // ネイティブ側でバックグラウンド更新をスケジュール
+      const success = await NativeWidgetBridge.scheduleWidgetUpdate(config.updateInterval);
+      
+      if (success) {
+        console.log(`Widget scheduler started with ${config.updateInterval} minute interval`);
+      } else {
+        console.warn("Failed to start widget scheduler");
+      }
     } catch (error) {
       console.error("Failed to start widget scheduler:", error);
     }
@@ -170,7 +168,7 @@ export class WidgetManager {
    */
   static async stopWidgetScheduler(): Promise<void> {
     try {
-      await WidgetManager.notifyNativeWidget("scheduler_stopped", {});
+      await NativeWidgetBridge.cancelScheduledUpdate();
       console.log("Widget scheduler stopped");
     } catch (error) {
       console.error("Failed to stop widget scheduler:", error);
@@ -178,26 +176,14 @@ export class WidgetManager {
   }
 
   /**
-   * ネイティブウィジェットに通知を送信
-   * 将来のネイティブ実装用
+   * ウィジェットを即座に更新
    */
-  private static async notifyNativeWidget(
-    action: string,
-    data: Record<string, any>
-  ): Promise<void> {
+  static async reloadWidget(): Promise<boolean> {
     try {
-      // React Native Bridgeを使用してネイティブ側に通知
-      // 現在は実装されていません
-      console.log(`[Widget Manager] ${action}:`, data);
-
-      // 将来の実装例：
-      // if (Platform.OS === "android") {
-      //   NativeModules.WidgetManager.updateWidget(action, data);
-      // } else if (Platform.OS === "ios") {
-      //   NativeModules.WidgetManager.updateWidget(action, data);
-      // }
+      return await NativeWidgetBridge.reloadWidget();
     } catch (error) {
-      console.error("Failed to notify native widget:", error);
+      console.error("Failed to reload widget:", error);
+      return false;
     }
   }
 

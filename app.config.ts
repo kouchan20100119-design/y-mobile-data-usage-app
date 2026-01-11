@@ -34,6 +34,9 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    infoPlist: {
+      NSWidgetSupport: true,
+    },
   },
   android: {
     adaptiveIcon: {
@@ -45,7 +48,11 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
+    permissions: [
+      "POST_NOTIFICATIONS",
+      "SCHEDULE_EXACT_ALARM",
+      "USE_EXACT_ALARM"
+    ],
     intentFilters: [
       {
         action: "VIEW",
@@ -100,6 +107,8 @@ const config: ExpoConfig = {
         },
       },
     ],
+    "./plugins/withAndroidWidget",
+    "./plugins/withIOSWidget",
   ],
   experiments: {
     typedRoutes: true,
