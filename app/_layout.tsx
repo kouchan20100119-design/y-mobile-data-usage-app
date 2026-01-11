@@ -9,6 +9,7 @@ import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { WidgetManager } from "@/lib/widget-manager";
+import { logger } from "@/lib/logger";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -43,6 +44,13 @@ export default function RootLayout() {
   useEffect(() => {
     WidgetManager.startWidgetScheduler().catch((err) => {
       console.error("Failed to start widget scheduler:", err);
+    });
+  }, []);
+
+  // Initialize logger
+  useEffect(() => {
+    logger.initialize().catch((err) => {
+      console.error("Failed to initialize logger:", err);
     });
   }, []);
 

@@ -20,6 +20,7 @@ const MAPPING = {
   "chevron.right": "chevron-right",
   "square.grid.2x2": "dashboard",
   "gear": "settings",
+  "doc.text": "description",
 } as IconMapping;
 
 /**

@@ -5,6 +5,7 @@
 
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { logger } from "./logger";
 
 export interface MobileDataUsage {
   timestamp: string;
@@ -265,27 +266,34 @@ export class YmobileFetcher {
    * データ取得のメイン関数
    */
   async getData(forceRefresh: boolean = false): Promise<FetchResult> {
-    // キャッシュチェック
-    if (!forceRefresh) {
-      const cached = await this.getCachedData();
-      if (cached) {
-        return { success: true, data: cached };
+    try {
+      await logger.debug("YmobileFetcher", "getData called", { forceRefresh });
+      if (!forceRefresh) {
+        const cached = await this.getCachedData();
+        if (cached) {
+          await logger.info("YmobileFetcher", "Using cached data");
+          return { success: true, data: cached };
+        }
       }
+      await logger.info("YmobileFetcher", "Fetching fresh data");
+      const data = await this.fetchFreshData();
+      if (data) {
+        await this.saveCache(data);
+        await logger.info("YmobileFetcher", "Data fetched successfully");
+        return { success: true, data };
+      }
+      await logger.warn("YmobileFetcher", "Failed to fetch data");
+      return {
+        success: false,
+        error: "データ取得に失敗しました。認証情報を確認してください。",
+      };
+    } catch (error) {
+      await logger.error("YmobileFetcher", "getData failed", error as Error | string);
+      return {
+        success: false,
+        error: "データ取得に失敗しました。認証情報を確認してください。",
+      };
     }
-
-    // 新規取得
-    console.log("🚀 データ取得開始...");
-    const data = await this.fetchFreshData();
-
-    if (data) {
-      await this.saveCache(data);
-      return { success: true, data };
-    }
-
-    return {
-      success: false,
-      error: "データ取得に失敗しました。認証情報を確認してください。",
-    };
   }
 
   /**
