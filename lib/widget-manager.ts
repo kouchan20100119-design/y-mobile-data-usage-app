@@ -60,8 +60,6 @@ export class WidgetManager {
   static async setConfig(config: WidgetConfig): Promise<void> {
     try {
       await AsyncStorage.setItem(WIDGET_CONFIG_KEY, JSON.stringify(config));
-      // ネイティブ側に通知（将来実装）
-      await WidgetManager.notifyNativeWidget("config_updated", config);
     } catch (error) {
       console.error("Failed to set widget config:", error);
       throw error;
